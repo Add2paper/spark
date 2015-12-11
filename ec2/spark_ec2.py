@@ -856,7 +856,6 @@ def setup_cluster(conn, master_nodes, slave_nodes, opts, deploy_ssh_key):
     print("Running setup on master...")
     setup_spark_cluster(master, opts)
     if opts.zeppelin:
-        print(opts.zeppelin)
         setup_zeppelin(master, opts)
     print("Done!")
 
