@@ -327,6 +327,9 @@ def parse_args():
     parser.add_option(
         "--instance-profile-name", default=None,
         help="IAM profile name to launch instances under")
+    parser.add_option(
+        "--zeppelin", action="store_true", default=False,
+        help="Setup Zeppelin on cluster")
 
     (opts, args) = parser.parse_args()
     if len(args) != 2:
@@ -515,6 +518,7 @@ def launch_cluster(conn, opts, cluster_name):
                                    src_group=slave_group)
         master_group.authorize('tcp', 22, 22, authorized_address)
         master_group.authorize('tcp', 8080, 8081, authorized_address)
+        master_group.authorize('tcp', 8090, 8090, authorized_address)
         master_group.authorize('tcp', 18080, 18080, authorized_address)
         master_group.authorize('tcp', 19999, 19999, authorized_address)
         master_group.authorize('tcp', 50030, 50030, authorized_address)
@@ -849,9 +853,11 @@ def setup_cluster(conn, master_nodes, slave_nodes, opts, deploy_ssh_key):
             opts=opts,
             master_nodes=master_nodes
         )
-
     print("Running setup on master...")
     setup_spark_cluster(master, opts)
+    if opts.zeppelin:
+        print(opts.zeppelin)
+        setup_zeppelin(master, opts)
     print("Done!")
 
 
@@ -862,6 +868,17 @@ def setup_spark_cluster(master, opts):
 
     if opts.ganglia:
         print("Ganglia started at http://%s:5080/ganglia" % master)
+
+
+def setup_zeppelin(master, opts):
+    commands = (
+        "wget http://apache.mirror.cdnetworks.com/incubator/zeppelin/0.5.5-incubating/zeppelin-0.5.5-incubating-bin-all.tgz",
+        "tar -xvf zeppelin-0.5.5-incubating-bin-all.tgz",
+        "cp zeppelin-ec2/zeppelin-site.xml zeppelin-0.5.5-incubating-bin-all/conf/",
+        "zeppelin-0.5.5-incubating-bin-all/bin/zeppelin-daemon.sh start"
+    )
+    ssh(master, opts, " && ".join(commands))
+    print("Zeppelin started at http://%s:8090" % master)
 
 
 def is_ssh_available(host, opts, print_ssh_output=True):
